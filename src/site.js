@@ -26,6 +26,44 @@ if (menuButton && siteNavigation) {
   });
 }
 
+function setupPreferenceToggle(selector, storageKey, attribute, value) {
+  const button = document.querySelector(selector);
+  if (!button) return;
+
+  let enabled = false;
+  try {
+    enabled = localStorage.getItem(storageKey) === "true";
+  } catch {
+    enabled = false;
+  }
+
+  function updatePreference(save) {
+    if (enabled) {
+      document.documentElement.setAttribute(attribute, value);
+    } else {
+      document.documentElement.removeAttribute(attribute);
+    }
+    button.setAttribute("aria-pressed", String(enabled));
+    button.textContent = enabled ? button.dataset.enabled : button.dataset.disabled;
+    if (save) {
+      try {
+        localStorage.setItem(storageKey, String(enabled));
+      } catch {
+        return;
+      }
+    }
+  }
+
+  updatePreference(false);
+  button.addEventListener("click", () => {
+    enabled = !enabled;
+    updatePreference(true);
+  });
+}
+
+setupPreferenceToggle("[data-contrast-toggle]", "casa-semente-high-contrast", "data-contrast", "high");
+setupPreferenceToggle("[data-motion-toggle]", "casa-semente-reduced-motion", "data-motion", "reduce");
+
 const signupForm = document.querySelector(".signup-form");
 
 if (signupForm) {
@@ -34,7 +72,16 @@ if (signupForm) {
   const postalCodeInput = signupForm.querySelector("#cep");
   const birthDateInput = signupForm.querySelector("#nascimento");
   const formStatus = signupForm.querySelector("#form-status");
+  const statusMessage = formStatus?.querySelector("[data-status-message]");
+  const toastCloseButton = formStatus?.querySelector("[data-toast-close]");
   const interestInputs = [...signupForm.querySelectorAll('input[name="interesse"]')];
+
+  if (formStatus && toastCloseButton) {
+    toastCloseButton.addEventListener("click", () => {
+      formStatus.hidden = true;
+      signupForm.querySelector('[type="submit"]')?.focus();
+    });
+  }
 
   if (birthDateInput) {
     const today = new Date();
@@ -119,10 +166,9 @@ if (signupForm) {
     }
 
     event.preventDefault();
-    if (formStatus) {
-      formStatus.textContent = "Cadastro validado. Esta demonstração não enviou nem armazenou seus dados.";
+    if (formStatus && statusMessage) {
+      statusMessage.textContent = "Cadastro validado. Esta demonstração não enviou nem armazenou seus dados.";
       formStatus.hidden = false;
-      formStatus.focus();
     }
   });
 }
